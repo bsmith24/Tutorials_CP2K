@@ -6,172 +6,15 @@ import multiprocessing as mp
 import glob
 import matplotlib.pyplot as plt
 
-
-
-def convolve_pdos(cp2k_log_file: str, time_step: int, sigma: float, coef: float, npoints: int, energy_conversion: float, angular_momentum_cols: list):
-    """
-    This function reads the pdos file produced by CP2K and extract the pdos at each time step and 
-    then convolve them with Gaussian functions.
-    
-    Args:
-    
-        cp2k_log_file (str): The CP2K output file.
-        
-        time_step (int): The time step of molecular dynamics.
-        
-        sigma (float): The standard deviation in Gaussian function.
-        
-        coef (float): The coefficient multiplied in Gaussian function.
-        
-        npoints (int): The number of points used in convolution.
-        
-        energy_conversion (float): The energy conversion unit from Hartree. For example 27.211386 is
-                                   for unit conversion from Hartree to eV.
-				   
-        angular_momentum_cols (list): The angular momentum columns in the *.pdos files produced by CP2K.
-	
-    Returns:
-	
-        energy_grid (numpy array): The energy grid points vector.
-		
-        convolved_pdos (numpy array): The convolved pDOS vector.
-		
-        homo_energy (float): The average HOMO energy.
-		
-    """
-
-    # Opening the file
-    file = open(cp2k_log_file,'r')
-    lines = file.readlines()
-    file.close()
-    
-    # Lines with 'DOS'
-    lines_with_dos = []
-    
-    # Finding the lines with 'DOS'
-    for i in range(0,len(lines)):
-        if 'DOS'.lower() in lines[i].lower().split():
-            lines_with_dos.append(i)
-    
-    # Finding the first and last index of PDOS for each time step
-    if len(lines_with_dos)==1:
-        # First index
-        first_index = 2
-        # Last index
-        last_index = int(lines[len(lines)-1].split()[0])
-    elif len(lines_with_dos)>1:
-        # First index
-        first_index = 2
-        # Last index
-        last_index = int(lines_with_dos[1]-1)
-    
-    # Find the number of columns in the PDOS file showing the number 
-    # of orbital components, energy, and occupation column.
-    num_cols = len(lines[first_index].split())
-    
-    # Number of energy levels considered for PDOS
-    num_levels = last_index - first_index + 1
-
-    
-    # Finding the homo and lumo energy level by appending the 
-    # pdos numerical values of unoccupied states only
-    pdos_unocc = []
-    # Energy levels
-    energy_levels = []
-    for i in range(first_index, last_index + 1):
-        energy_levels.append(float(lines[i].split()[1])*energy_conversion)
-        if float(lines[i].split()[2])==0:
-            pdos_unocc.append(i)
-    # LUMO energy level
-    lumo_level = int(lines[min(pdos_unocc)].split()[0])
-    # HOMO energy level
-    homo_level = lumo_level-1
-    # HOMO energy
-    homo_energy = float(lines[homo_level].split()[1])*energy_conversion
-    # Minimum energy level
-    min_energy = float(lines[first_index].split()[1])*energy_conversion
-    # Maximum energy level
-    max_energy = float(lines[last_index].split()[1])*energy_conversion
-    
-    
-    # Now we make an equispaced energy vector from min_energy ad max_energy with npoints.
-    energy_grid = np.linspace( min_energy-2, max_energy+2, npoints )
-    energy_grid = np.array(energy_grid)
-    
-    
-    # Appending the energy lines with their component densities of states
-    energy_lines = []
-    for i in range( time_step * ( num_levels + 2 ) + 2, ( time_step + 1 ) * ( num_levels + 2 ) ):
-        # Appending the energy lines into enrgy_lines
-        energy_lines.append( lines[i].split() )
-
-    for i in range(0, len(energy_lines)):
-        
-        for j in range(0,len(energy_lines[0])):
-            
-            energy_lines[i][j] = float(energy_lines[i][j])
-            
-    energy_lines = np.array(energy_lines)
-
-    # Now we sum the PDOSs defined in angular_momentum_cols by user
-    pdos_sum = []
-    for k in range(0, len(energy_lines)):
-        
-        # A temporary vector for summation of the PDOS
-        tmp_vec = []
-        tmp_vec.append(energy_lines[k][1])
-        
-        for i in range(0,len(angular_momentum_cols)):
-            # Initializing a new sum variable
-            # print("angular_momentum_cols[i]",angular_momentum_cols[i])
-            tmp_sum = 0
-            for j in angular_momentum_cols[i]:
-                
-                # If j is less than the number of columns 
-                # then sum the PDOS
-                if j<=num_cols:
-                    tmp_sum += energy_lines[k][j]
-            # Appending tmp_sum into tmp_vec
-            tmp_vec.append(tmp_sum)
-        
-        # Now append tmp_vec into pdos_sum, we will
-        # then use this pdos_sum for convolution
-        pdos_sum.append(tmp_vec)
-    
-    convolved_pdos = []
-    t1 = time.time()
-    for j in range(1,len(angular_momentum_cols)+1):
-        # Initialize a vector of zeros summing the weighted PDOS
-        tmp_weighted_pdos = np.zeros(energy_grid.shape)
-
-        for i in range(0,num_levels):
-            # The Guassian function
-            gaussian_fun = (coef/(sigma*np.sqrt(2.0*np.pi)))*(np.exp(-0.5*np.power(((energy_grid-float(pdos_sum[i][0])*energy_conversion)/sigma),2)))
-            
-            tmp_weighted_pdos = tmp_weighted_pdos + gaussian_fun * float( pdos_sum[i][j] )
-        convolved_pdos.append(tmp_weighted_pdos)
-    print('Elapsed time for convolving ',cp2k_log_file,': ',time.time()-t1,' seconds')
-    convolved_pdos = np.array(convolved_pdos)
-    
-    energy_grid = energy_grid
-    
-    return energy_grid, convolved_pdos, homo_energy
-
-
-
-
-
-
-
-
+from libra_py import pdos
 
 ####################################################################################################################################################
 #============================= Main part starts from here and we use the function above combined with multiprocessing =============================#
 
 #pdos_type = "orbital_resolved"
 pdos_type = "atom_resolved"
-#thermal=True
-thermal=False
+thermal=True
+#thermal=False
 
 if pdos_type == "orbital_resolved":
 
@@ -223,6 +66,7 @@ homos = []
 # Here we change the order,
 # In fact the k1 is C, k2 is H
 for k in [1,2]:
+
     # Create an empty list for summation of the convolved PDOS
     # This is used for Total DOS
     dos_summation_angular = []
@@ -242,16 +86,23 @@ for k in [1,2]:
     # Find all the pdos files of an element in all_pdosfiles for the first trajectory
 
     if thermal == True:
-        DOS_files1 = glob.glob('all_pdosfiles/*k%d-1.pdos'%k)
+        DOS_files1 = glob.glob('../step2/all_pdosfiles/*k%d-1.pdos'%k)
     else:
         DOS_files1 = glob.glob('../tddft/*k%d-1.pdos'%k)
 
-    # For each of the pdos files we create the list of variables
     for DOS_file in DOS_files1:
-        vars_for_pool.append((DOS_file,time_step,sigma,coef,npoints,energy_conversion,list(angular_momentum_cols[k-1])))       
-        
-    # The results of convolve_pdos function for an element
-    results_for_k = pool.starmap(convolve_pdos,vars_for_pool)
+        params = {}
+        params["cp2k_pdos_file"] = DOS_file
+        params["time_step"] = time_step
+        params["sigma"] = sigma
+        params["coef"] = coef
+        params["npoints"] = npoints
+        params["energy_conversion"] = energy_conversion
+        params["angular_momentum_cols"] = list(angular_momentum_cols[k-1])
+        vars_for_pool.append(params)
+
+    results_for_k = pool.map(pdos.convolve_cp2k_pdos, vars_for_pool)
+
     # We initialize all the homos average: homos_ave
     # This variable is the same for each element so it will be repeated but doesn't 
     # change the results
@@ -341,4 +192,3 @@ elif thermal == False:
         plt.savefig('atom_DOS_0K_'+outname+'.png', dpi=300)
 
 print("Total Elapsed time:",time.time()-t1)
-

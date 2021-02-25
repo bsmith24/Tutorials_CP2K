@@ -3,6 +3,7 @@
   RUN_TYPE ENERGY
   PRINT_LEVEL MEDIUM
 &END GLOBAL
+
 &FORCE_EVAL
   METHOD Quickstep
 
@@ -14,12 +15,10 @@
        &MGRID
           CUTOFF 400 # separate cutoff for TDDFPT calc
        &END
-
        RESTART     .TRUE.
        WFN_RESTART_FILE_NAME RESTART.tdwfn
-
     &END TDDFPT
-  &END PROPERTIES
+   &END PROPERTIES
 
   &PRINT
     &FORCES
@@ -42,7 +41,7 @@
       &END PDOS
       &MO_CUBES
         NLUMO -1
-        NHOMO 20
+        NHOMO 19
         WRITE_CUBE .TRUE.
         STRIDE 2 2 2
       &END
@@ -107,6 +106,8 @@
     &TOPOLOGY
       COORD_FILE_NAME coord.xyz
       COORD_FILE_FORMAT XYZ
+      &CENTER_COORDINATES T
+      &END     
     &END
   &END SUBSYS
 &END FORCE_EVAL

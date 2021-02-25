@@ -1,3 +1,4 @@
+rm -rf all*
 rm -rf sl*
 rm -rf _*
 rm -rf wd

@@ -62,10 +62,7 @@ for njob in range( njobs ):
     print('2- Finished distributing for job ',njob,'\nNow we are in directory', os.getcwd())
     os.chdir("wd/job"+str(njob)+"/")
 
-    print('3- Now we have changed directory to :', os.getcwd(),'To submit job', njob)
-    os.mkdir("cubefiles")
-    os.mkdir("logfiles")
-    
+    print('3- Now we have changed directory to :', os.getcwd(),'To submit job', njob)    
     print("4- The initial step for the job ", njob, " is: ", job_init_step, 'with final step: ', job_final_step)
     print("5- nsteps_this_job is: ", nsteps_this_job)
     St_ks_job = []

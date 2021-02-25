@@ -1,9 +1,9 @@
 #!/bin/sh
-###SBATCH --partition=scavenger  --qos=scavenger
-###SBATCH --clusters=faculty
+#SBATCH --partition=scavenger  --qos=scavenger
+#SBATCH --clusters=faculty
 ###SBATCH --partition=debug  --qos=debug
-#SBATCH --partition=general-compute  --qos=general-compute
-#SBATCH --clusters=ub-hpc
+###SBATCH --partition=general-compute  --qos=general-compute
+###SBATCH --clusters=ub-hpc
 #SBATCH --constraint=CPU-Gold-6130
 #SBATCH --time=1:00:00
 #SBATCH --nodes=1
@@ -32,11 +32,11 @@ export OMP_NUM_THREADS=$omp_threads
 
 nprocs=32
 
-cp2k_exe=/panasas/scratch/grp-alexeyak/brendan/cp2k_install/cp2k-7.1/exe/local/cp2k.popt
+cp2k_exe=/panasas/scratch/grp-alexeyak/brendan/cp2k/exe/local/cp2k.popt
 gaussian_exe=g16
 dftb_exe=/util/academic/dftbplus/19.1-arpack/bin/dftb+
 
-path=/panasas/scratch/grp-alexeyak/brendan/Tutorials_CP2K/step2
+path=/panasas/scratch/grp-alexeyak/brendan/active_projects/Tutorials_CP2K/step2
 res=$path/res
 MO_images_directory=$path/MO_images_directory
 path_to_tcl_file=$path/cube.tcl
@@ -62,8 +62,6 @@ params[\"nprocs\"]=\"$nprocs\"
 params[\"project_name\"]=\"c10h16\"
 params[\"trajectory_xyz_filename\"]=\"c10h16-pos-1.xyz\"
 params[\"logfile_directory\"]=\"logfiles\"
-params[\"number_of_states\"]=10
-params[\"tolerance\"]=0.0
 params[\"isUKS\"]=0
 params[\"min_band\"]=int(\"$min_band\")
 params[\"max_band\"]=\"$max_band\"
@@ -73,13 +71,6 @@ params[\"nsteps_this_job\"]=\"$nsteps_this_job\"
 params[\"njob\"]=\"$njob\"
 params[\"res_dir\"]=\"$res\"
 params[\"dt\"]=41.341374575751
-
-params[\"completion_level\"]=0
-
-params[\"do_phase_corrections\"]=1
-params[\"perform_state_reordering\"]=1
-params[\"do_state_reordering\"]=2
-params[\"state_reordering_alpha\"]=0.0
 
 params[\"do_cube_visualization\"]=0
 params[\"path_to_tcl_file\"] = \"$path_to_tcl_file\"
